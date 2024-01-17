@@ -37,6 +37,7 @@ var DefaultServerCloseSIG = []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall
 var DefaultServerGracefulSIG = syscall.SIGUSR2
 
 // Serve implements Service, starting all services that belong to the server.
+// 启动所有服务
 func (s *Server) Serve() error {
 	defer log.Sync()
 	if len(s.services) == 0 {
@@ -50,6 +51,7 @@ func (s *Server) Serve() error {
 		err error
 	)
 	for name, service := range s.services {
+		// 重点: 遍历所有service并启动
 		go func(n string, srv Service) {
 			if e := srv.Serve(); e != nil {
 				mu.Lock()

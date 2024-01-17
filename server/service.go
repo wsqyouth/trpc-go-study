@@ -136,10 +136,12 @@ var New = func(opts ...Option) Service {
 }
 
 // Serve implements Service, starting serving.
+// 先启动服务, 没问题后启动服务注册
 func (s *service) Serve() error {
 	pid := os.Getpid()
 
 	// make sure ListenAndServe succeeds before Naming Service Registry.
+	// 重点: 服务启动
 	if err := s.opts.Transport.ListenAndServe(s.ctx, s.opts.ServeOptions...); err != nil {
 		log.Errorf("process:%d service:%s ListenAndServe fail:%v", pid, s.opts.ServiceName, err)
 		return err
@@ -157,6 +159,7 @@ func (s *service) Serve() error {
 			// according to this event.
 			opts = append(opts, registry.WithEvent(registry.GracefulRestart))
 		}
+		// 重点: 服务注册
 		if err := s.opts.Registry.Register(s.opts.ServiceName, opts...); err != nil {
 			// if registry fails, service needs to be closed and error should be returned.
 			log.Errorf("process:%d, service:%s register fail:%v", pid, s.opts.ServiceName, err)
@@ -204,7 +207,7 @@ func (s *service) Handle(ctx context.Context, reqBuf []byte) (rspBuf []byte, err
 	if err := msg.ServerRspErr(); err != nil {
 		return s.encode(ctx, msg, nil, err)
 	}
-
+	// 之中: 获取返回包
 	rspbody, err := s.handle(ctx, msg, reqBodyBuf)
 	if err != nil {
 		// no response
@@ -216,6 +219,7 @@ func (s *service) Handle(ctx context.Context, reqBuf []byte) (rspBuf []byte, err
 		report.ServiceHandleFail.Incr()
 		return s.encode(ctx, msg, nil, err)
 	}
+	// 之后: 处理返回包
 	return s.handleResponse(ctx, msg, rspbody)
 }
 
@@ -284,6 +288,7 @@ func (s *service) handle(ctx context.Context, msg codec.Msg, reqBodyBuf []byte) 
 	if ok {
 		return s.handleStream(ctx, msg, reqBodyBuf, streamHandler, s.opts)
 	}
+	// 重点: 根据rpcname去查找对应的handler
 	handler, ok := s.handlers[msg.ServerRPCName()]
 	if !ok {
 		handler, ok = s.handlers["*"] // wildcard
@@ -312,6 +317,7 @@ func (s *service) handle(ctx context.Context, msg codec.Msg, reqBodyBuf []byte) 
 		defer cancel()
 	}
 	newFilterFunc := s.filterFunc(ctx, msg, reqBodyBuf, fixTimeout)
+	// 重点: handler处理
 	rspBody, err := handler(ctx, newFilterFunc)
 	if err != nil {
 		if e, ok := err.(*errs.Error); ok &&
@@ -341,7 +347,7 @@ func (s *service) handleResponse(ctx context.Context, msg codec.Msg, rspBody int
 	span := rpcz.SpanFromContext(ctx)
 
 	_, end := span.NewChild("Marshal")
-	rspBodyBuf, err := codec.Marshal(serializationType, rspBody)
+	rspBodyBuf, err := codec.Marshal(serializationType, rspBody) // 打包
 	end.End()
 
 	if err != nil {
@@ -358,7 +364,7 @@ func (s *service) handleResponse(ctx context.Context, msg codec.Msg, rspBody int
 	}
 
 	_, end = span.NewChild("Compress")
-	rspBodyBuf, err = codec.Compress(compressType, rspBodyBuf)
+	rspBodyBuf, err = codec.Compress(compressType, rspBodyBuf) // 压缩
 	end.End()
 
 	if err != nil {
@@ -369,7 +375,7 @@ func (s *service) handleResponse(ctx context.Context, msg codec.Msg, rspBody int
 	}
 
 	_, end = span.NewChild("EncodeProtocolHead")
-	rspBuf, err := s.encode(ctx, msg, rspBodyBuf, nil)
+	rspBuf, err := s.encode(ctx, msg, rspBodyBuf, nil) // 编码
 	end.End()
 
 	return rspBuf, err
@@ -601,3 +607,7 @@ func defaultOptions() *Options {
 		CurrentCompressType:      invalidCompressType,
 	}
 }
+
+/*
+本文件是服务端代码的核心,需重点关注
+*/

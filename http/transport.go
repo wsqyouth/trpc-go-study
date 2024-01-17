@@ -441,6 +441,7 @@ func (ct *ClientTransport) encodeString(in string) string {
 
 // RoundTrip sends and receives http packets, put http response into ctx,
 // no need to return rspBuf here.
+// 核心: 发送
 func (ct *ClientTransport) RoundTrip(
 	ctx context.Context,
 	reqBody []byte,

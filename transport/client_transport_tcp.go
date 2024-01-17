@@ -39,12 +39,14 @@ func (c *clientTransport) tcpRoundTrip(ctx context.Context, reqData []byte,
 			"tcp client transport: framer builder empty")
 	}
 
+	// 重点,获取连接句柄
 	conn, err := c.dialTCP(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 	// TCP connection is exclusively multiplexed. Close determines whether connection should be put
 	// back into the connection pool to be reused.
+	// 使用了池逻辑,后续再阅读下
 	defer conn.Close()
 	msg := codec.Message(ctx)
 	msg.WithRemoteAddr(conn.RemoteAddr())
@@ -62,6 +64,7 @@ func (c *clientTransport) tcpRoundTrip(ctx context.Context, reqData []byte,
 	report.TCPClientTransportSendSize.Set(float64(len(reqData)))
 	span := rpcz.SpanFromContext(ctx)
 	_, end := span.NewChild("SendMessage")
+	// 重点,写数据
 	err = c.tcpWriteFrame(ctx, conn, reqData)
 	end.End()
 	if err != nil {
@@ -69,6 +72,7 @@ func (c *clientTransport) tcpRoundTrip(ctx context.Context, reqData []byte,
 	}
 
 	_, end = span.NewChild("ReceiveMessage")
+	// 重点,一发一收
 	rspData, err := c.tcpReadFrame(conn, opts)
 	end.End()
 	return rspData, err
@@ -99,6 +103,7 @@ func (c *clientTransport) dialTCP(ctx context.Context, opts *RoundTripOptions) (
 		if opts.DialTimeout > 0 && opts.DialTimeout < timeout {
 			timeout = opts.DialTimeout
 		}
+		// 从池里面获取
 		conn, err = connpool.Dial(&connpool.DialOptions{
 			Network:       opts.Network,
 			Address:       opts.Address,

@@ -145,6 +145,7 @@ func GetFramerBuilder(name string) codec.FramerBuilder {
 }
 
 // ListenAndServe wraps and starts the default server transport.
+// 重点: 默认transport的监听服务
 func ListenAndServe(opts ...ListenServeOption) error {
 	return DefaultServerTransport.ListenAndServe(context.Background(), opts...)
 }

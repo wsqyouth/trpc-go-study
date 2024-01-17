@@ -62,6 +62,7 @@ type clientTransport struct {
 }
 
 // RoundTrip sends client requests.
+// 这个才是核心,客户端发送
 func (c *clientTransport) RoundTrip(ctx context.Context, req []byte,
 	roundTripOpts ...RoundTripOption) (rsp []byte, err error) {
 	// default value.
@@ -81,6 +82,7 @@ func (c *clientTransport) RoundTrip(ctx context.Context, req []byte,
 
 	switch opts.Network {
 	case "tcp", "tcp4", "tcp6", "unix":
+		// 关心下tcp发送
 		return c.tcpRoundTrip(ctx, req, opts)
 	case "udp", "udp4", "udp6":
 		return c.udpRoundTrip(ctx, req, opts)

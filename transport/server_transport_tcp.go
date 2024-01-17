@@ -95,6 +95,7 @@ func (s *serverTransport) serveTCP(ctx context.Context, ln net.Listener, opts *L
 		pool = createRoutinePool(opts.Routines)
 	}
 	for tempDelay := time.Duration(0); ; {
+		// 重点: accept阻塞监听
 		rwc, err := ln.Accept()
 		if err != nil {
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
@@ -153,6 +154,7 @@ func (s *serverTransport) serveTCP(ctx context.Context, ln net.Listener, opts *L
 		s.m.Lock()
 		s.addrToConn[key] = tc
 		s.m.Unlock()
+		// 重点: 处理连接套接字
 		go tc.serve()
 	}
 }
@@ -274,7 +276,7 @@ func (c *tcpconn) serve() {
 			copy(reqCopy, req)
 			req = reqCopy
 		}
-
+		// 重点: 处理请求包内容
 		c.handle(req)
 	}
 }
@@ -313,6 +315,7 @@ func (c *tcpconn) handleSyncWithErr(req []byte, e error) {
 	span, ender, ctx := rpcz.NewSpanContext(ctx, "server")
 	span.SetAttribute(rpcz.TRPCAttributeRequestSize, len(req))
 
+	// 重点: 业务处理后获取rsp二进制字节包
 	rsp, err := c.conn.handle(ctx, req)
 
 	defer func() {

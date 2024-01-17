@@ -62,6 +62,7 @@ var (
 )
 
 // DefaultServerTransport is the default implementation of ServerStreamTransport.
+// 注: 本质上使用了serverTransport类的实现
 var DefaultServerTransport = NewServerTransport(WithReusePort(true))
 
 // NewServerTransport creates a new ServerTransport.
@@ -89,6 +90,7 @@ type serverTransport struct {
 }
 
 // ListenAndServe starts Listening, returns an error on failure.
+// 默认transport的实现, 重点关注
 func (s *serverTransport) ListenAndServe(ctx context.Context, opts ...ListenServeOption) error {
 	lsopts := &ListenServeOptions{}
 	for _, opt := range opts {
@@ -104,6 +106,7 @@ func (s *serverTransport) ListenAndServe(ctx context.Context, opts ...ListenServ
 		lsopts.Network = network
 		switch lsopts.Network {
 		case "tcp", "tcp4", "tcp6", "unix":
+			// 重点: 学习源码是重点关注tcp的实现
 			if err := s.listenAndServeStream(ctx, lsopts); err != nil {
 				return err
 			}
@@ -214,6 +217,7 @@ func (s *serverTransport) listenAndServeStream(ctx context.Context, opts *Listen
 	if opts.FramerBuilder == nil {
 		return errors.New("tcp transport FramerBuilder empty")
 	}
+	// 重点: tcp的重点获取listen套接字
 	ln, err := s.getTCPListener(opts)
 	if err != nil {
 		return fmt.Errorf("get tcp listener err: %w", err)
@@ -225,6 +229,7 @@ func (s *serverTransport) listenAndServeStream(ctx context.Context, opts *Listen
 	if err != nil {
 		return fmt.Errorf("may lift to tls listener err: %w", err)
 	}
+	// 重点: 处理套接字的内容
 	go s.serveStream(ctx, ln, opts)
 	return nil
 }
@@ -242,6 +247,7 @@ func mayLiftToTLSListener(ln net.Listener, opts *ListenServeOptions) (net.Listen
 }
 
 func (s *serverTransport) serveStream(ctx context.Context, ln net.Listener, opts *ListenServeOptions) error {
+	//  transport/server_transport_tcp.go
 	return s.serveTCP(ctx, ln, opts)
 }
 
