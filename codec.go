@@ -35,6 +35,7 @@ import (
 )
 
 func init() {
+	// NOTES: 框架在被启动时注册了默认的编解码器
 	codec.Register(ProtocolName, DefaultServerCodec, DefaultClientCodec)
 	transport.RegisterFramerBuilder(ProtocolName, DefaultFramerBuilder)
 }
@@ -44,7 +45,7 @@ var (
 	DefaultServerCodec = &ServerCodec{
 		streamCodec: NewServerStreamCodec(),
 	}
-	// 默认的编码器
+	// NOTES: 默认的客户端编解码器
 	DefaultClientCodec = &ClientCodec{
 		streamCodec:   NewClientStreamCodec(),
 		defaultCaller: fmt.Sprintf("trpc.client.%s.service", path.Base(os.Args[0])),
@@ -125,7 +126,7 @@ func (h *FrameHead) extract(buf []byte) {
 }
 
 // construct constructs bytes data for the whole frame.
-// 协议帧处理逻辑
+// NOTES: 协议帧构造处理逻辑
 func (h *FrameHead) construct(header, body, attachment []byte) ([]byte, error) {
 	headerLen := len(header)
 	if headerLen > math.MaxUint16 {

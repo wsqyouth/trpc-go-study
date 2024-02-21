@@ -28,6 +28,7 @@ type Serializer interface {
 
 // SerializationType defines the code of different serializers, such as
 // protobuf, json, http-get-query and http-get-restful.
+// NOTES: 这里可以看到序列化格式的号段划分约定
 //
 //   - code 0-127 is used for common modes in all language versions of trpc.
 //   - code 128-999 is used for modes in any language specific version of trpc.

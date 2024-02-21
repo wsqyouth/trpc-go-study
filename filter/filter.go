@@ -53,8 +53,10 @@ var EmptyChain = ClientChain{}
 type ClientChain []ClientFilter
 
 // Filter invokes every client side filters in the chain.
+// NOTES: 主调方拦截器链的视线逻辑
 func (c ClientChain) Filter(ctx context.Context, req, rsp interface{}, next ClientHandleFunc) error {
 	nextF := func(ctx context.Context, req, rsp interface{}) error {
+		// NOTES: 这里只是为了包装链路上报的逻辑，函数签名和 callFunc 是一致的
 		_, end, ctx := rpcz.NewSpanContext(ctx, "CallFunc")
 		err := next(ctx, req, rsp)
 		end.End()
@@ -62,14 +64,19 @@ func (c ClientChain) Filter(ctx context.Context, req, rsp interface{}, next Clie
 	}
 
 	names, ok := names(ctx)
+	// NOTES: 从后往前遍历拦截器链，将后一个匿名函数和当前拦截器关联，这样刚好编织出从前往后的调用链
 	for i := len(c) - 1; i >= 0; i-- {
 		curHandleFunc, curFilter, curI := nextF, c[i], i
+		// NOTES: nextF 是将每个拦截器函数包装成和 callFunc 一样的函数签名 ClientHandleFunc
+		// 每个拦截器获得下一个拦截器或最终的 callFunc 的引用
 		nextF = func(ctx context.Context, req, rsp interface{}) error {
 			if ok {
 				var ender rpcz.Ender
 				_, ender, ctx = rpcz.NewSpanContext(ctx, name(names, curI))
 				defer ender.End()
 			}
+			// NOTES: curHandleFunc 被 curFilter 持有引用并调用
+			// curFilter 最终被包装成匿名函数 nextF，然后又被它前面的拦截器持有引用
 			return curFilter(ctx, req, rsp, curHandleFunc)
 		}
 	}
