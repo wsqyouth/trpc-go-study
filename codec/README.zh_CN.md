@@ -76,3 +76,6 @@ type Serializer interface {
     Marshal(body interface{}) (out []byte, err error)
 }
 ```
+
+注: 序列化和压缩解决的是如何将消息体转化为二进制的问题。
+编码步骤完成的消息头的编码以及完整请求帧的编码，做好传输层二进制传输的准备。

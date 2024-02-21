@@ -282,6 +282,7 @@ func (s *service) setOpt(msg codec.Msg) {
 	msg.WithCalleeServiceName(s.opts.ServiceName) // from perspective of the service, callee refers to itself
 }
 
+// 对于这样的一个请求:  curl http://127.0.0.1:8000/trpc.greeter.Greeter/Hello --header 'Content-Type:application/json' -d '{"greeting":"Good afternoon"}'
 func (s *service) handle(ctx context.Context, msg codec.Msg, reqBodyBuf []byte) (interface{}, error) {
 	// whether is server streaming RPC
 	streamHandler, ok := s.streamHandlers[msg.ServerRPCName()]
@@ -289,8 +290,10 @@ func (s *service) handle(ctx context.Context, msg codec.Msg, reqBodyBuf []byte) 
 		return s.handleStream(ctx, msg, reqBodyBuf, streamHandler, s.opts)
 	}
 	// 重点: 根据rpcname去查找对应的handler
-	handler, ok := s.handlers[msg.ServerRPCName()]
+	handler, ok := s.handlers[msg.ServerRPCName()] //  msg.ServerRPCName(): /trpc.greeter.Greeter/Hello
 	if !ok {
+		// 框架对请求路由处理时, 优先匹配被调方的方法名, 如果失败则使用下面的通配符进行匹配
+		// 使用场景: 桩代码没有注册到框架, 无法预知代理的服务协议, 直接处理代理服务
 		handler, ok = s.handlers["*"] // wildcard
 		if !ok {
 			report.ServiceHandleRPCNameInvalid.Incr()

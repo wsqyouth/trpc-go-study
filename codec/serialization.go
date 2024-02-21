@@ -94,6 +94,7 @@ func Unmarshal(serializationType int, in []byte, body interface{}) error {
 
 // Marshal returns the serialized bytes from body. The specific serialization
 // mode is defined by serializationType code, protobuf is default mode.
+// 加载对应的序列化器, 然后调用它的Marshal方法
 func Marshal(serializationType int, body interface{}) ([]byte, error) {
 	if body == nil {
 		return nil, nil
@@ -103,6 +104,7 @@ func Marshal(serializationType int, body interface{}) ([]byte, error) {
 	}
 
 	s := GetSerializer(serializationType)
+	// 如果是自定义时序列化器必须在框架初始化时调用填充
 	if s == nil {
 		return nil, errors.New("serializer not registered")
 	}

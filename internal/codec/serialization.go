@@ -16,6 +16,7 @@ package codec
 import "trpc.group/trpc-go/trpc-go/codec"
 
 // IsValidSerializationType checks whether t is a valid serialization type.
+// 有效的序列号格式枚举集合, 业务自定义场景下需要使用1000以上的枚举值
 func IsValidSerializationType(t int) bool {
 	const minValidSerializationType = codec.SerializationTypePB
 	return t >= minValidSerializationType

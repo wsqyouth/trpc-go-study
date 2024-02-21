@@ -272,7 +272,7 @@ func prepareRequestBuf(
 	reqBody interface{},
 	opts *Options,
 ) ([]byte, error) {
-	reqBodyBuf, err := serializeAndCompress(ctx, msg, reqBody, opts)
+	reqBodyBuf, err := serializeAndCompress(ctx, msg, reqBody, opts) // 序列化和压缩
 	if err != nil {
 		return nil, err
 	}
@@ -345,9 +345,10 @@ func serializeAndCompress(ctx context.Context, msg codec.Msg, reqBody interface{
 	// Marshal reqBody into binary body.
 	span := rpcz.SpanFromContext(ctx)
 	_, end := span.NewChild("Marshal")
-	serializationType := msg.SerializationType()
+	serializationType := msg.SerializationType() // 获取序列化类型
+	// opts提供了一种运行时覆盖序列号格式及压缩格式的机制。
 	if icodec.IsValidSerializationType(opts.CurrentSerializationType) {
-		serializationType = opts.CurrentSerializationType
+		serializationType = opts.CurrentSerializationType // 注: 可以看到非法时使用默认值, 未报错
 	}
 	var (
 		reqBodyBuf []byte
@@ -363,9 +364,9 @@ func serializeAndCompress(ctx context.Context, msg codec.Msg, reqBody interface{
 
 	// Compress.
 	_, end = span.NewChild("Compress")
-	compressType := msg.CompressType()
+	compressType := msg.CompressType() // 获取压缩类型
 	if icodec.IsValidCompressType(opts.CurrentCompressType) {
-		compressType = opts.CurrentCompressType
+		compressType = opts.CurrentCompressType // 注: 可以看到非法时使用默认值, 未报错
 	}
 	if icodec.IsValidCompressType(compressType) && compressType != codec.CompressTypeNoop {
 		reqBodyBuf, err = codec.Compress(compressType, reqBodyBuf)

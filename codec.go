@@ -44,6 +44,7 @@ var (
 	DefaultServerCodec = &ServerCodec{
 		streamCodec: NewServerStreamCodec(),
 	}
+	// 默认的编码器
 	DefaultClientCodec = &ClientCodec{
 		streamCodec:   NewClientStreamCodec(),
 		defaultCaller: fmt.Sprintf("trpc.client.%s.service", path.Base(os.Args[0])),
@@ -124,6 +125,7 @@ func (h *FrameHead) extract(buf []byte) {
 }
 
 // construct constructs bytes data for the whole frame.
+// 协议帧处理逻辑
 func (h *FrameHead) construct(header, body, attachment []byte) ([]byte, error) {
 	headerLen := len(header)
 	if headerLen > math.MaxUint16 {
@@ -453,6 +455,7 @@ func handleEncodeErr(
 
 // ClientCodec is an implementation of codec.Codec.
 // Used for trpc clientside codec.
+// 默认的编码器实现
 type ClientCodec struct {
 	streamCodec   *ClientStreamCodec
 	defaultCaller string // trpc.app.server.service
@@ -473,7 +476,7 @@ func (c *ClientCodec) Encode(msg codec.Msg, reqBody []byte) (reqBuf []byte, err 
 	// create a new framehead without modifying the original one
 	// to avoid overwriting the requestID of the original framehead.
 	frameHead = newDefaultUnaryFrameHead()
-	req, err := loadOrStoreDefaultRequestProtocol(msg)
+	req, err := loadOrStoreDefaultRequestProtocol(msg) // 初始化req
 	if err != nil {
 		return nil, err
 	}
@@ -493,11 +496,11 @@ func (c *ClientCodec) Encode(msg codec.Msg, reqBody []byte) (reqBuf []byte, err 
 
 	updateRequestProtocol(req, updateCallerServiceName(msg, c.defaultCaller))
 
-	reqHead, err := proto.Marshal(req)
+	reqHead, err := proto.Marshal(req) // req进行pb序列化
 	if err != nil {
 		return nil, err
 	}
-	return frameHead.construct(reqHead, reqBody, attm)
+	return frameHead.construct(reqHead, reqBody, attm) // req pb序列化, reqBody是序列化和压缩之后的, 封装协议帧
 }
 
 // loadOrStoreDefaultRequestProtocol loads the existing RequestProtocol from msg if present.
